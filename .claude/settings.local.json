@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(gh --version)",
-      "Bash(gh auth:*)"
+      "Bash(gh auth:*)",
+      "Bash(gh repo:*)",
+      "WebFetch(domain:dhanhq.co)",
+      "Bash(python -c ':*)",
+      "Bash(python -c \"import json; nb=json.load\\(open\\('main.ipynb'\\)\\); [print\\(i, c['id'], repr\\(c['source'][:60]\\)\\) for i,c in enumerate\\(nb['cells']\\)]\")"
     ]
   }
 }
