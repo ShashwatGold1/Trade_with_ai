@@ -1,0 +1,1 @@
+remember : give me high probability high margin intraday trade for option buying in nifty50. make sure accuracy is very high. give entry, stoploss, target, direction in 5, 10, 15, 20 minutes.
