@@ -6,7 +6,15 @@
       "Bash(gh repo:*)",
       "WebFetch(domain:dhanhq.co)",
       "Bash(python -c ':*)",
-      "Bash(python -c \"import json; nb=json.load\\(open\\('main.ipynb'\\)\\); [print\\(i, c['id'], repr\\(c['source'][:60]\\)\\) for i,c in enumerate\\(nb['cells']\\)]\")"
+      "Bash(python -c \"import json; nb=json.load\\(open\\('main.ipynb'\\)\\); [print\\(i, c['id'], repr\\(c['source'][:60]\\)\\) for i,c in enumerate\\(nb['cells']\\)]\")",
+      "Read(//c/Users/ojhas/**)",
+      "Bash(rm -f timer_log.csv)",
+      "Bash(py -3 -c ':*)",
+      "Bash(python time_management.py)",
+      "Bash(python -)",
+      "Bash(python _test_run3.py)",
+      "Bash(python _test_run4.py)",
+      "Bash(rm _test_run3.py _test_run4.py)"
     ]
   }
 }
