@@ -12,5 +12,5 @@ cd ..
 cd your-project-folder
 git status
 git add .
-git commit -m "Your meaningful commit message"
-git push origin main
+git commit -m "Time Management Module Finalized"
+git push origin master

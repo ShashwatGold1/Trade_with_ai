@@ -6,7 +6,6 @@ import os
 from datetime import datetime
 from contextlib import contextmanager
 from functools import wraps
-import difflib
 
 
 # ---- Config ----
@@ -63,11 +62,6 @@ def _time_cols(cols):
         [c for c in cols if c.startswith("time_sec_")],
         key=lambda x: int(x.split("_")[-1])
     )
-
-
-def _next_index(cols):
-    tc = _time_cols(cols)
-    return int(tc[-1].split("_")[-1]) + 1 if tc else 1
 
 
 # ---- Session State (fixed for entire script run) ----
@@ -285,7 +279,6 @@ def line_timer(func, *args, **kwargs):
             "label"   : func.__name__,
             "line_no" : display,
             "source"  : src.rstrip()[:200],
-            "status"  : "active",
             "time_sec": f"{sec:.5f}",
         })
 
