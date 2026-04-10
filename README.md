@@ -12,5 +12,5 @@ cd ..
 cd your-project-folder
 git status
 git add .
-git commit -m "Time Management Module Finalized"
+git commit -m "Time Management Module Updated and Finalized"
 git push origin master
