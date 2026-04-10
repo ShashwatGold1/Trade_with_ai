@@ -11,19 +11,38 @@ import difflib
 
 # ---- Config ----
 
-LOG_FILE   = "timer_log.csv"
-FIXED_COLS = ["run_at", "method", "label"]
+CONFIG = {
+    "log_dir": os.path.join(os.getcwd(), "logs"),
+    "enable_console": False
+}
 
-LINE_LOG_FILE   = "line_timer_log.csv"
+FIXED_COLS = ["run_at", "method", "label"]
 LINE_FIXED_COLS = ["run_id", "run_at", "label", "line_no", "source", "time_sec"]
 
+def configure(log_folder=None, enable_console_print=None):
+    if log_folder is not None:
+        CONFIG["log_dir"] = log_folder
+    if enable_console_print is not None:
+        CONFIG["enable_console"] = enable_console_print
+
+def _get_log_file():
+    return os.path.join(CONFIG["log_dir"], "timer_log.csv")
+
+def _get_line_log_file():
+    return os.path.join(CONFIG["log_dir"], "line_timer_log.csv")
+
+def _ensure_dir(filepath):
+    d = os.path.dirname(filepath)
+    if d and not os.path.exists(d):
+        os.makedirs(d, exist_ok=True)
 
 # ---- CSV Helpers ----
 
 def _read_csv():
-    if not os.path.exists(LOG_FILE):
+    log_file = _get_log_file()
+    if not os.path.exists(log_file):
         return [], []
-    with open(LOG_FILE, "r", newline="") as f:
+    with open(log_file, "r", newline="") as f:
         reader = csv.DictReader(f)
         cols   = list(reader.fieldnames or [])
         rows   = list(reader)
@@ -31,7 +50,9 @@ def _read_csv():
 
 
 def _write_csv(rows, cols):
-    with open(LOG_FILE, "w", newline="") as f:
+    log_file = _get_log_file()
+    _ensure_dir(log_file)
+    with open(log_file, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
@@ -102,7 +123,7 @@ def _update_csv(entries):
         new_row.update({
             "run_at" : run_at,
             "method" : f"{method:<20}",
-            "label"  : f"{label:<15}",
+            "label"  : f"{label:<12}",
             new_col  : entries[0]["time_sec"],
         })
         rows.append(new_row)
@@ -117,7 +138,8 @@ def block_timer(label):
     start = time.perf_counter()
     yield
     sec = time.perf_counter() - start
-    print(f"{label}\t : {sec:.4f}s")
+    if CONFIG["enable_console"]:
+        print(f"{label}\t : {sec:.4f}s")
     _update_csv([{
         "method"  : "Block Timer",
         "label"   : label,
@@ -133,7 +155,8 @@ def func_timer(func):
         start  = time.perf_counter()
         result = func(*args, **kwargs)
         sec    = time.perf_counter() - start
-        print(f"{func.__name__}\t : {sec:.4f}s")
+        if CONFIG["enable_console"]:
+            print(f"{func.__name__}\t : {sec:.4f}s")
         _update_csv([{
             "method"  : "Function Timer",
             "label"   : func.__name__,
@@ -144,17 +167,19 @@ def func_timer(func):
 
 
 def _update_line_csv(entries):
-    if not os.path.exists(LINE_LOG_FILE):
+    log_file = _get_line_log_file()
+    if not os.path.exists(log_file):
         run_id = 1
     else:
-        with open(LINE_LOG_FILE, "r", newline="", encoding="utf-8") as f:
+        with open(log_file, "r", newline="", encoding="utf-8") as f:
             run_ids = [int(r.get("run_id", 0)) for r in csv.DictReader(f) if str(r.get("run_id", "")).strip().isdigit()]
             run_id = max(run_ids) + 1 if run_ids else 1
             
     run_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    file_exists = os.path.exists(LINE_LOG_FILE)
+    file_exists = os.path.exists(log_file)
+    _ensure_dir(log_file)
     
-    with open(LINE_LOG_FILE, "a", newline="", encoding="utf-8") as f:
+    with open(log_file, "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=LINE_FIXED_COLS)
         if not file_exists:
             writer.writeheader()
@@ -163,18 +188,19 @@ def _update_line_csv(entries):
             writer.writerow({
                 "run_id": f"{run_id:<4}",
                 "run_at": run_at,
-                "label": f"{entry['label']:<15}",
+                "label": f"{entry['label']:<11}",
                 "line_no": f"{entry['line_no']:<4}",
-                "source": f"{entry['source'][:80]:<80}",
-                "time_sec": f" {entry['time_sec']:>12}"
+                "source": f"{entry['source'][:50]:<50}",
+                "time_sec": f"{entry['time_sec']:>8}"
             })
 
 def analyze_line_runs(label):
-    if not os.path.exists(LINE_LOG_FILE):
-        print(f"No log data available in {LINE_LOG_FILE}.")
+    log_file = _get_line_log_file()
+    if not os.path.exists(log_file):
+        print(f"No log data available in {log_file}.")
         return
         
-    with open(LINE_LOG_FILE, "r", newline="", encoding="utf-8") as f:
+    with open(log_file, "r", newline="", encoding="utf-8") as f:
         rows = [r for r in csv.DictReader(f) if r["label"] == label]
         
     if not rows:
@@ -243,15 +269,17 @@ def line_timer(func, *args, **kwargs):
 
     entries   = []
 
-    print(f"\n{'Line':<6} {'Source':<40} {'Time':>10}")
-    print("-" * 58)
+    if CONFIG["enable_console"]:
+        print(f"\n{'Line':<6} {'Source':<40} {'Time':>10}")
+        print("-" * 58)
 
     for i, src in enumerate(src_lines):
         lineno  = start_no + i
         display = i + 1
         sec     = line_times.get(lineno, 0.0)
         marker  = " <--" if sec > 0 else ""
-        print(f"{display:<6} {src[:38]:<40} {sec:>9.4f}s{marker}")
+        if CONFIG["enable_console"]:
+            print(f"{display:<6} {src[:38]:<40} {sec:>9.4f}s{marker}")
         entries.append({
             "method"  : "Line Timer",
             "label"   : func.__name__,
@@ -267,24 +295,33 @@ def line_timer(func, *args, **kwargs):
 
 # ---- Usage Examples ----
 
-if __name__ == "__main__":
+r"""
+import time_management as tm
+import time
 
-    # Method 1 — Specific Part of Code
-    with block_timer("loop"):
-        for _ in range(2):
-            time.sleep(0.2)
+# tm.configure(enable_console_print=False)
+# tm.configure(log_folder=r"C:\Users\ojhas\OneDrive\Desktop\Trade_with_ai\Data")
 
-    # Method 2 — Function
-    @func_timer
-    def my_function():
-        for _ in range(2):
-            time.sleep(0.2)
+# Method 1 -----
+# Specific Part of Code
+with tm.block_timer("loop"): # add
+    for i in range(2):
+        time.sleep(0.1)
 
-    my_function()
+# Method 2 ----- 
+# Function
+@tm.func_timer               # add
+def my_function():
+    for _ in range(2):
+        time.sleep(0.1)
 
-    # Method 3 — Line by Line
-    def track_lines():
-        for _ in range(2):
-            time.sleep(1)
+my_function()
 
-    line_timer(track_lines)
+# Method 3 -----
+# Line by Line
+def track_lines():           # add
+    for _ in range(2):
+        time.sleep(0.1)
+
+tm.line_timer(track_lines)   # add
+"""
